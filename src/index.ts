@@ -21,7 +21,8 @@ app.get('/token', (req, res) => {
   const twilioApiSecret = process.env.TWILIO_API_SECRET!;
   const outgoingApplicationSid = process.env.TWILIO_TWIML_APP_SID!;
 
-  const identity = 'receiver-user';
+  // Get identity from query param, fallback to 'receiver-user'
+  const identity = (req.query.identity as string) || 'receiver-user';
 
   const token = new AccessToken(
     twilioAccountSid,
@@ -42,13 +43,16 @@ app.get('/token', (req, res) => {
 
 app.post('/voice', express.urlencoded({ extended: false }), (req, res) => {
   const twiml = new twilio.twiml.VoiceResponse();
+  const to = req.body.To || req.query.To || 'receiver-user';
 
-  // Get client identity from body or query, fallback to 'receiver-user'
-  const client = req.body.To || req.query.To || 'receiver-user';
-
-  // Optionally, add logic to check if 'client' is a phone number or client identity
-  // For now, always dial as client
-  twiml.dial().client(client);
+  // Check if 'to' is a phone number (E.164 format)
+  if (/^\+?\d+$/.test(to)) {
+    // Outbound call to phone number
+    twiml.dial({ callerId: process.env.TWILIO_CALLER_ID }).number(to);
+  } else {
+    // Client-to-client call
+    twiml.dial().client(to);
+  }
 
   res.type('text/xml');
   res.send(twiml.toString());
