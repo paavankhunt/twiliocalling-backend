@@ -21,7 +21,7 @@ app.get('/token', (req, res) => {
   const twilioApiSecret = process.env.TWILIO_API_SECRET!;
   const outgoingApplicationSid = process.env.TWILIO_TWIML_APP_SID!;
 
-  const identity = 'demo-user'; // can be dynamic per user
+  const identity = 'receiver-user';
 
   const token = new AccessToken(
     twilioAccountSid,
@@ -37,14 +37,16 @@ app.get('/token', (req, res) => {
 
   token.addGrant(voiceGrant);
 
-  res.json({ token: token.toJwt() });
+  res.json({ token: token.toJwt(), identity });
 });
 
 app.post('/voice', express.urlencoded({ extended: false }), (req, res) => {
   const twiml = new twilio.twiml.VoiceResponse();
 
-  // Forward to client identity (you can make this dynamic)
-  twiml.dial().client('demo-user');
+  // Get client identity from body or query, fallback to 'receiver-user'
+  const client = req.body.To || req.query.To || 'receiver-user';
+
+  twiml.dial().client(client);
 
   res.type('text/xml');
   res.send(twiml.toString());
