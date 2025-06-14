@@ -46,6 +46,8 @@ app.post('/voice', express.urlencoded({ extended: false }), (req, res) => {
   // Get client identity from body or query, fallback to 'receiver-user'
   const client = req.body.To || req.query.To || 'receiver-user';
 
+  // Optionally, add logic to check if 'client' is a phone number or client identity
+  // For now, always dial as client
   twiml.dial().client(client);
 
   res.type('text/xml');
