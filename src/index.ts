@@ -23,6 +23,7 @@ app.get('/token', (req, res) => {
 
   // Get identity from query param, fallback to 'receiver-user'
   const identity = (req.query.identity as string) || 'receiver-user';
+  console.log('🚀 ~ app.get ~ identity:', identity);
 
   const token = new AccessToken(
     twilioAccountSid,
@@ -30,6 +31,7 @@ app.get('/token', (req, res) => {
     twilioApiSecret,
     { ttl: 3600, identity }
   );
+  console.log('🚀 ~ app.get ~ token:', token);
 
   const voiceGrant = new VoiceGrant({
     outgoingApplicationSid,
@@ -38,19 +40,21 @@ app.get('/token', (req, res) => {
 
   token.addGrant(voiceGrant);
 
+  console.log('🚀 ~ app.get ~ token.toJwt():', token.toJwt());
   res.json({ token: token.toJwt(), identity });
 });
 
 app.post('/voice', express.urlencoded({ extended: false }), (req, res) => {
   const twiml = new twilio.twiml.VoiceResponse();
-  const to = req.body.To || req.query.To || 'receiver-user';
+  let to = req.body.To || req.query.To || 'receiver-user';
+  to = to.trim(); // Remove leading/trailing whitespace
+  console.log('🚀 ~ app.post ~ to:', to);
 
-  // Check if 'to' is a phone number (E.164 format)
-  if (/^\+?\d+$/.test(to)) {
-    // Outbound call to phone number
+  // If 'to' starts with + and is all digits, treat as phone number
+  if (/^\+\d{10,}$/.test(to)) {
+    console.log('🚀 ~ app.post ~ to:', process.env.TWILIO_CALLER_ID);
     twiml.dial({ callerId: process.env.TWILIO_CALLER_ID }).number(to);
   } else {
-    // Client-to-client call
     twiml.dial().client(to);
   }
 
